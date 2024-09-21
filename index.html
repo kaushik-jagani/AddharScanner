@@ -28,13 +28,11 @@
 
     <h1>Aadhaar Card Scanner</h1>
     
-    <!-- Input to capture Aadhaar Card using Camera -->
     <div class="form-field">
         <label for="aadharCardCapture">Capture Aadhaar Card Image:</label>
         <input type="file" accept="image/*" id="aadharCardCapture" capture="camera">
     </div>
 
-    <!-- Form to display extracted Aadhaar details -->
     <form id="aadhaarForm">
         <div class="form-field">
             <label for="aadhaarNumber">Aadhaar Number:</label>
@@ -64,11 +62,9 @@
         const dobField = document.getElementById('dob');
         const addressField = document.getElementById('address');
 
-        // Listen for file input change event
         fileInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
-                // Process the image using Tesseract.js
                 Tesseract.recognize(
                     file,
                     'eng',
@@ -82,29 +78,27 @@
             }
         });
 
-        // Function to extract Aadhaar details from the OCR text
         function extractAadhaarDetails(text) {
-            // Regular expressions to capture specific Aadhaar card fields
-            const aadhaarNumberRegex = /\d{4}\s\d{4}\s\d{4}/;  // 12-digit Aadhaar number
-            const dobRegex = /\d{2}\/\d{2}\/\d{4}/;  // Date of Birth in DD/MM/YYYY format
+            const aadhaarNumberRegex = /\d{4}\s\d{4}\s\d{4}/;
+            const dobRegex = /\d{2}\/\d{2}\/\d{4}/;
+            const vidRegex = /VID\s*:\s*\d{4}\s\d{4}\s\d{4}\s\d{4}/;
+            const genderKeywords = ["Male", "Female", "MALE", "FEMALE"];
 
-            // Extract Aadhaar Number, DOB, and Address
-            const aadhaarNumber = text.match(aadhaarNumberRegex) ? text.match(aadhaarNumberRegex)[0] : '';
-            const dob = text.match(dobRegex) ? text.match(dobRegex)[0] : '';
+            const cleanedText = text.replace(/\s\s+/g, ' ').trim();
 
-            // Assume name is on the second line after splitting the text by newlines
-            const lines = text.split('\n').filter(line => line.trim().length > 0);  // Remove empty lines
-            const name = lines.length > 1 ? lines[1].trim() : '';  // Assuming second line contains the name
+            const aadhaarNumber = cleanedText.match(aadhaarNumberRegex) ? cleanedText.match(aadhaarNumberRegex)[0] : '';
+            const dob = cleanedText.match(dobRegex) ? cleanedText.match(dobRegex)[0] : '';
 
-            // Assuming address starts after certain known lines like name, etc.
-            let address = '';
-            if (lines.length > 3) {
-                address = lines.slice(3).join(', ');  // Assume address spans multiple lines
-            }
+            const textWithoutVID = cleanedText.replace(vidRegex, '');
+            const words = textWithoutVID.split(' ');
 
-            // Bind the extracted details to form fields
+            const genderIndex = words.findIndex(word => genderKeywords.includes(word));
+            const nameParts = words.slice(genderIndex - 3, genderIndex).join(' ');
+
+            const address = cleanedText.split(dob)[1] ? cleanedText.split(dob)[1].trim() : '';
+
             aadhaarNumberField.value = aadhaarNumber;
-            nameField.value = name;
+            nameField.value = nameParts.trim();
             dobField.value = dob;
             addressField.value = address;
         }
