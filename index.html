@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aadhaar Card OCR Scan</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.4/dist/tesseract.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .form-field {
+            margin-bottom: 15px;
+        }
+        .form-field label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-field input, .form-field textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Aadhaar Card Scanner</h1>
+    
+    <!-- Input to capture Aadhaar Card using Camera -->
+    <div class="form-field">
+        <label for="aadharCardCapture">Capture Aadhaar Card Image:</label>
+        <input type="file" accept="image/*" id="aadharCardCapture" capture="camera">
+    </div>
+
+    <!-- Form to display extracted Aadhaar details -->
+    <form id="aadhaarForm">
+        <div class="form-field">
+            <label for="aadhaarNumber">Aadhaar Number:</label>
+            <input type="text" id="aadhaarNumber" name="aadhaarNumber">
+        </div>
+
+        <div class="form-field">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name">
+        </div>
+
+        <div class="form-field">
+            <label for="dob">Date of Birth:</label>
+            <input type="text" id="dob" name="dob">
+        </div>
+
+        <div class="form-field">
+            <label for="address">Address:</label>
+            <textarea id="address" name="address" rows="4"></textarea>
+        </div>
+    </form>
+
+    <script>
+        const fileInput = document.getElementById('aadharCardCapture');
+        const aadhaarNumberField = document.getElementById('aadhaarNumber');
+        const nameField = document.getElementById('name');
+        const dobField = document.getElementById('dob');
+        const addressField = document.getElementById('address');
+
+        // Listen for file input change event
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Process the image using Tesseract.js
+                Tesseract.recognize(
+                    file,
+                    'eng',
+                    { logger: m => console.log(m) }
+                ).then(({ data: { text } }) => {
+                    console.log('Extracted Text:', text);
+                    extractAadhaarDetails(text);
+                }).catch(err => {
+                    console.error('OCR Error:', err);
+                });
+            }
+        });
+
+        // Function to extract Aadhaar details from the OCR text
+        function extractAadhaarDetails(text) {
+            // Regular expressions to capture specific Aadhaar card fields
+            const aadhaarNumberRegex = /\d{4}\s\d{4}\s\d{4}/;  // 12-digit Aadhaar number
+            const dobRegex = /\d{2}\/\d{2}\/\d{4}/;  // Date of Birth in DD/MM/YYYY format
+
+            // Extract Aadhaar Number, DOB, and Address
+            const aadhaarNumber = text.match(aadhaarNumberRegex) ? text.match(aadhaarNumberRegex)[0] : '';
+            const dob = text.match(dobRegex) ? text.match(dobRegex)[0] : '';
+
+            // Assume name is on the second line after splitting the text by newlines
+            const lines = text.split('\n').filter(line => line.trim().length > 0);  // Remove empty lines
+            const name = lines.length > 1 ? lines[1].trim() : '';  // Assuming second line contains the name
+
+            // Assuming address starts after certain known lines like name, etc.
+            let address = '';
+            if (lines.length > 3) {
+                address = lines.slice(3).join(', ');  // Assume address spans multiple lines
+            }
+
+            // Bind the extracted details to form fields
+            aadhaarNumberField.value = aadhaarNumber;
+            nameField.value = name;
+            dobField.value = dob;
+            addressField.value = address;
+        }
+    </script>
+
+</body>
+</html>
